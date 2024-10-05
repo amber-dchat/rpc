@@ -1,0 +1,12 @@
+[package]
+name = "amber_dchat_rpc_utils"
+version = "0.1.2"
+edition = "2021"
+description = "INTERNAL PACKAGE Utils for Amber DChat RPC"
+license = "MIT"
+authors = ["AHQ Softwares <ahqsoftwares@gmail.com>", "Amber DChatt"]
+homepage = "https://github.com/amber-dchat/rpc"
+
+[dependencies]
+serde = { version = "1.0.210", features = ["derive"] }
+tokio = { version = "1", features = ["net"], default-features = false }
