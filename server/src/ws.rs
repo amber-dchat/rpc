@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use amber_dchat_rpc_utils::structs::{PartialRpcStatus, RpcStatus};
 use tokio::{net::TcpStream, spawn};
-use tokio_tungstenite::accept_async;
+use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-use futures_util::{SinkExt, StreamExt, TryStreamExt};
+use futures_util::{pin_mut, SinkExt, StreamExt, TryStreamExt};
 
 pub fn accept<T: IResponse + Send + Sync + 'static>(stream: TcpStream, sender: Arc<T>) {
   spawn(async move {
@@ -24,7 +24,9 @@ async fn run<T: IResponse + Send + Sync + 'static>(
 
   let (mut socket, response) = socket.split();
 
-  response
+  let _ = socket.send(Message::text(r#"{"__rpc_rs":"polling","format0":"https://docs.rs/amber_dchat_rpc_utils/latest/amber_dchat_rpc_utils/structs/struct.PartialRpcStatus.html"}"#)).await;
+
+  let broadcast = response
     .try_for_each(|res| {
       let sender = sender.clone();
       async move {
@@ -44,11 +46,14 @@ async fn run<T: IResponse + Send + Sync + 'static>(
 
         Ok(())
       }
-    })
-    .await
-    .ok()?;
+    });
+
+  pin_mut!(broadcast);
+  let _ = broadcast.await;
 
   let _ = socket.close().await;
+
+  sender.send_listener(&format!("{{\"_clear\": {task_id}}}"));
 
   exec! {
     println!("Task {task_id} finished");
